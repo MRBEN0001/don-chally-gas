@@ -75,7 +75,7 @@ class User extends Authenticatable
     /**
      * The section this user checks out sales into (the "checkout point").
      */
-    const CHECKOUT_SECTION = 'PROVISIONS';
+    const CHECKOUT_SECTION = 'GAS';
 
     /**
      * The picker section (e.g. Pharmacy) that can only raise prices.

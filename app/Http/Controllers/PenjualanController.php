@@ -154,12 +154,7 @@ class PenjualanController extends Controller
         $sectionId = $this->getSectionFromRequest($request);
 
         $penjualan = Penjualan::with(['detail.produk.kategori', 'detail.produk.section', 'user', 'checkoutSection'])
-            ->where(function ($query) {
-                $query->where('bayar', '>', 0)
-                    ->orWhere(function ($pending) {
-                        $pending->where('bayar', '<=', 0)->whereHas('detail');
-                    });
-            })
+            ->where('bayar', '>', 0)
             ->orderBy('id_penjualan', 'desc')
             ->get();
 
@@ -169,7 +164,7 @@ class PenjualanController extends Controller
             ->of($penjualan)
             ->addIndexColumn()
             ->addColumn('total_item', function ($penjualan) {
-                return format_uang($this->saleTotalItem($penjualan));
+                return number_format($this->saleTotalItem($penjualan), 2, '.', ',');
             })
             ->addColumn('total_harga', function ($penjualan) {
                 return '₦ '. format_uang($this->saleTotalHarga($penjualan));

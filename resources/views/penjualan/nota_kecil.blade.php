@@ -81,8 +81,8 @@
             <td class="text-right">{{ format_uang($penjualan->total_harga) }}</td>
         </tr>
         <tr>
-            <td>Total Item:</td>
-            <td class="text-right">{{ format_uang($penjualan->total_item) }}</td>
+            <td>Total kg:</td>
+            <td class="text-right">{{ number_format($penjualan->total_item, 2, '.', ',') }}</td>
         </tr>
         <tr>
             <td>Discount:</td>

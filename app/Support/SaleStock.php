@@ -69,7 +69,7 @@ class SaleStock
             ->sum('jumlah');
     }
 
-    public static function canSetQuantity(Produk $produk, int $idPenjualan, int $newQty, ?int $excludeDetailId = null): bool
+    public static function canSetQuantity(Produk $produk, int $idPenjualan, $newQty, ?int $excludeDetailId = null): bool
     {
         if ($newQty < 1) {
             return false;

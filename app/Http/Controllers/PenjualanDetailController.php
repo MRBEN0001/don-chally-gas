@@ -99,10 +99,10 @@ class PenjualanDetailController extends Controller
         foreach ($detail as $item) {
             $lineMax = $item->harga_jual * $item->jumlah;
             $row = array();
-            $row['kode_produk'] = '<span class="label label-success">'. $item->produk['kode_produk'] .'</span';
             $row['nama_produk'] = $item->produk['nama_produk'];
             $row['harga_jual']  = '₦ '. format_uang($item->harga_jual);
-            $row['jumlah']      = '<input type="number" class="form-control input-sm quantity" data-id="'. $item->id_penjualan_detail .'" value="'. $item->jumlah .'">';
+            $row['amount']      = '<input type="number" class="form-control input-sm amount" data-id="'. $item->id_penjualan_detail .'" data-price="'. $item->harga_jual .'" value="'. ($item->harga_jual * $item->jumlah) .'" step="0.01">';
+            $row['jumlah']      = '<input type="number" class="form-control input-sm quantity" data-id="'. $item->id_penjualan_detail .'" value="'. $item->jumlah .'" step="0.01">';
             $row['diskon']      = '<input type="number" class="form-control input-sm discount-input" data-id="'. $item->id_penjualan_detail .'" data-max="'. $lineMax .'" value="'. (int) $item->diskon .'" min="0" step="1">';
             $row['subtotal']    = '₦ '. format_uang($item->subtotal);
             $row['aksi']        = '<div class="btn-group">
@@ -116,12 +116,12 @@ class PenjualanDetailController extends Controller
         }
 
         $data[] = [
-            'kode_produk' => '
+            'nama_produk' => '',
+            'harga_jual'  => '',
+            'amount'      => '
                 <div class="total hide">'. $total .'</div>
                 <div class="total_item hide">'. $total_item .'</div>
                 <div class="total_diskon hide">'. $total_diskon .'</div>',
-            'nama_produk' => '',
-            'harga_jual'  => '',
             'jumlah'      => '',
             'diskon'      => '',
             'subtotal'    => '',
@@ -131,7 +131,7 @@ class PenjualanDetailController extends Controller
         return datatables()
             ->of($data)
             ->addIndexColumn()
-            ->rawColumns(['aksi', 'kode_produk', 'jumlah', 'diskon'])
+            ->rawColumns(['aksi', 'amount', 'jumlah', 'diskon'])
             ->make(true);
     }
 
@@ -236,7 +236,7 @@ class PenjualanDetailController extends Controller
         }
 
         if ($request->has('jumlah')) {
-            $jumlah = (int) $request->jumlah;
+            $jumlah = (float) $request->jumlah;
 
             if ($jumlah < 1) {
                 return response()->json(['message' => 'Quantity cannot be less than 1.'], 400);

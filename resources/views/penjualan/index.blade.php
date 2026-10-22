@@ -66,7 +66,7 @@
                         <th>Phone Number</th>
                         <th>Receipt ID</th>
                         <th>Payment Method</th>
-                        <th>Quantity</th>
+                        <th>Kg</th>
                         <th>Total Price</th>
                         <th>Discount</th>
                         <th>Total Pay</th>

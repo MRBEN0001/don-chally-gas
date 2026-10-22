@@ -74,10 +74,10 @@ Sales Transactions
                 <table class="table table-stiped table-bordered table-penjualan">
                     <thead>
                         <th width="5%">#</th>
-                        <th>Code</th>
                         <th>Name</th>
                         <th>Price</th>
-                        <th width="15%">Quantity</th>
+                        <th width="15%">Amount (₦)</th>
+                        <th width="15%">Kg</th>
                         <th>Discount (₦)</th>
                         <th>Subtotal</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
@@ -204,9 +204,9 @@ Sales Transactions
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
                 {data: 'nama_produk'},
                 {data: 'harga_jual'},
+                {data: 'amount'},
                 {data: 'jumlah'},
                 {data: 'diskon'},
                 {data: 'subtotal'},
@@ -233,7 +233,7 @@ Sales Transactions
         // ✅ When quantity input changes
         $(document).on('input', '.quantity', function () {
             let id = $(this).data('id');
-            let jumlah = parseInt($(this).val());
+            let jumlah = parseFloat($(this).val());
 
             if (jumlah < 1) {
                 $(this).val(1);
@@ -267,7 +267,31 @@ Sales Transactions
                 });
         });
 
-        // ✅ When discount input changes
+        // ✅ When amount input changes -> compute kg (debounced)
+        let amountTimer = null;
+        $(document).on('input', '.amount', function () {
+            let $input = $(this);
+            let id = $input.data('id');
+            let price = parseFloat($input.data('price')) || 0;
+            let amount = parseFloat($input.val()) || 0;
+            let kg = price > 0 ? (amount / price) : 0;
+            $input.closest('tr').find('.quantity').val(kg.toFixed(2));
+
+            clearTimeout(amountTimer);
+            amountTimer = setTimeout(function () {
+                $.post(`{{ url('/transaksi') }}/${id}`, {
+                        '_token': $('[name=csrf-token]').attr('content'),
+                        '_method': 'put',
+                        'jumlah': kg
+                    })
+                    .done(response => {
+                        table.ajax.reload(() => loadForm(0));
+                    })
+                    .fail(errors => {
+                        table.ajax.reload(() => loadForm(0));
+                    });
+            }, 2000);
+        });
         $(document).on('input', '.discount-input', function () {
             let id = $(this).data('id');
             let diskon = parseFloat($(this).val()) || 0;
@@ -506,9 +530,9 @@ Sales Transactions
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
                 {data: 'nama_produk'},
                 {data: 'harga_jual'},
+                {data: 'amount'},
                 {data: 'jumlah'},
                 {data: 'diskon'},
                 {data: 'subtotal'},
@@ -539,7 +563,7 @@ Sales Transactions
         // === Quantity Change ===
         $(document).on('input', '.quantity', function () {
             let id = $(this).data('id');
-            let jumlah = parseInt($(this).val());
+            let jumlah = parseFloat($(this).val());
 
             if (jumlah < 1) {
                 $(this).val(1);
@@ -701,9 +725,9 @@ Sales Transactions
             },
             columns: [
                 {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
                 {data: 'nama_produk'},
                 {data: 'harga_jual'},
+                {data: 'amount'},
                 {data: 'jumlah'},
                 {data: 'diskon'},
                 {data: 'subtotal'},
@@ -723,7 +747,7 @@ Sales Transactions
 
         $(document).on('input', '.quantity', function () {
             let id = $(this).data('id');
-            let jumlah = parseInt($(this).val());
+            let jumlah = parseFloat($(this).val());
 
             if (jumlah < 1) {
                 $(this).val(1);
