@@ -46,9 +46,9 @@ class PenjualanController extends Controller
 
             $penjualan->setRelation('detail', $filteredDetails->values());
             $penjualan->total_item = $filteredDetails->sum('jumlah');
-            $penjualan->total_harga = $filteredDetails->sum(function ($detail) {
-                return $detail->harga_jual * $detail->jumlah;
-            });
+                $penjualan->total_harga = round($filteredDetails->sum(function ($detail) {
+                return round($detail->harga_jual * (float)$detail->jumlah, 2, PHP_ROUND_HALF_UP);
+            }), 2);
             $penjualan->bayar = $filteredDetails->sum('subtotal');
 
             return $penjualan;

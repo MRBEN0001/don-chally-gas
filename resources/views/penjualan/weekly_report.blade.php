@@ -39,7 +39,7 @@
                 <th width="15%">Receipt ID</th>
                 <th width="20%">Products</th>
                 <th width="12%">Name</th>
-                <th width="8%">Quantity</th>
+                <th width="8%">Quantity (Kg)</th>
                 <th width="10%">Total Price</th>
                 <th width="8%">Payment Method</th>
                 <th width="8%">Discount</th>
@@ -89,7 +89,7 @@
             <tr>
                 <th width="5%">#</th>
                 <th width="60%">Product Name</th>
-                <th width="15%">Total Quantity</th>
+                <th width="15%">Total Quantity (Kg)</th>
                 <th width="20%">Total Amount</th>
             </tr>
         </thead>
@@ -114,7 +114,7 @@
                 <td style="border: none; text-align: right;"><strong>{{ format_uang($totalTransactions) }}</strong></td>
             </tr>
             <tr>
-                <td style="border: none;"><strong>Total Items Sold:</strong></td>
+                <td style="border: none;"><strong>Total Kg Sold:</strong></td>
                 <td style="border: none; text-align: right;"><strong>{{ format_uang($totalItems) }}</strong></td>
             </tr>
             <tr>

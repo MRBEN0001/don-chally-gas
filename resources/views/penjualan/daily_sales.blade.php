@@ -62,7 +62,7 @@
                                 <th>Products</th>
                                 <th>Name</th>
                                 <th>Receipt ID</th>
-                                <th>Quantity</th>
+                                <th>Quantity (Kg)</th>
                                 <th>Total Price</th>
                                 <th>Payment Method</th>
                                 <th>Discount</th>
