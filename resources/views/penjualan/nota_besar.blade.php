@@ -81,7 +81,7 @@
                 <th>Code</th>
                 <th>Name</th>
                 <th>Unit Price</th>
-                <th>Kg</th>
+                <th>Quantity (Kg)</th>
                 <th>Discount</th>
                 <th>Subtotal</th>
             </tr>

@@ -13,7 +13,7 @@
                         <th>Code</th>
                         <th>Name</th>
                         <th>Price</th>
-                        <th>Quantity</th>
+                        <th>Quantity (Kg)</th>
                         <th>Discount</th>
                         <th>Subtotal</th>
                     </thead>

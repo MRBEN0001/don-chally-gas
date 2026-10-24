@@ -156,6 +156,7 @@ Sales Transactions
                                     <select name="payment_method" id="payment_method" class="form-control">
                                         <option value="cash" {{ ($penjualan->payment_method ?? 'cash') === 'cash' ? 'selected' : '' }}>Cash</option>
                                         <option value="transfer" {{ ($penjualan->payment_method ?? 'cash') === 'transfer' ? 'selected' : '' }}>Transfer</option>
+                                        <option value="card" {{ ($penjualan->payment_method ?? 'cash') === 'card' ? 'selected' : '' }}>Card</option>
                                     </select>
                                 </div>
                             </div>
@@ -267,15 +268,35 @@ Sales Transactions
                 });
         });
 
-        // ✅ When amount input changes -> compute kg (debounced)
-        let amountTimer = null;
         $(document).on('input', '.amount', function () {
             let $input = $(this);
             let id = $input.data('id');
             let price = parseFloat($input.data('price')) || 0;
             let amount = parseFloat($input.val()) || 0;
-            let kg = price > 0 ? (amount / price) : 0;
-            $input.closest('tr').find('.quantity').val(kg.toFixed(2));
+            if (price <= 0 || isNaN(amount)) {
+                return;
+            }
+            let kg = amount / price;
+            $input.closest('tr').find('.quantity').val(kg);
+            let row = $input.closest('tr');
+            row.find('.subtotal').html('₦ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+
+            let total = amount;
+            total = Math.round(total * 100) / 100;
+            $('#total').val(total);
+            $('#bayar').val(total);
+            $('#totalrp').val('₦ ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#bayarrp').val('₦ ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('.tampil-bayar').html('Pay: ₦ ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $.get(`{{ url('/transaksi/loadform') }}/${$('#diskon').val()||0}/${total}/${$('#diterima').val()||0}`)
+                .done(response => {
+                    $('.tampil-terbilang').text(response.terbilang);
+                    $('#kembali').val('₦'+ response.kembalirp);
+                    if ($('#diterima').val() != 0 && parseFloat($('#diterima').val()) > 0) {
+                        $('.tampil-bayar').text('Return: ₦ '+ response.kembalirp);
+                        $('.tampil-terbilang').text(response.kembali_terbilang);
+                    }
+                });
 
             clearTimeout(amountTimer);
             amountTimer = setTimeout(function () {
@@ -285,12 +306,12 @@ Sales Transactions
                         'jumlah': kg
                     })
                     .done(response => {
-                        table.ajax.reload(() => loadForm(0));
+                        table.ajax.reload(() => loadForm($('#diskon').val(), $('#diterima').val()));
                     })
                     .fail(errors => {
                         table.ajax.reload(() => loadForm(0));
                     });
-            }, 2000);
+            }, 500);
         });
         $(document).on('input', '.discount-input', function () {
             let id = $(this).data('id');
@@ -486,7 +507,11 @@ Sales Transactions
 
     // ✅ Recalculate totals & change (returns formatted currency and words)
     function loadForm(diskon = 0, diterima = 0) {
-        $('#total').val($('.total').text());
+        if (!$('#total').val() || isNaN(parseFloat($('#total').val()))) {
+            $('#total').val($('.total').text());
+        } else {
+            $('#total').val(parseFloat($('#total').val()).toFixed(2));
+        }
         $('#total_item').val($('.total_item').text());
 
         $.get(`{{ url('/transaksi/loadform') }}/${diskon}/${$('.total').text()}/${diterima}`)
@@ -682,7 +707,11 @@ Sales Transactions
 
     // === Update Totals and Display ===
     function loadForm(diskon = 0, diterima = 0) {
-        $('#total').val($('.total').text());
+        if (!$('#total').val() || isNaN(parseFloat($('#total').val()))) {
+            $('#total').val($('.total').text());
+        } else {
+            $('#total').val(parseFloat($('#total').val()).toFixed(2));
+        }
         $('#total_item').val($('.total_item').text());
 
         $.get(`{{ url('/transaksi/loadform') }}/${diskon}/${$('.total').text()}/${diterima}`)
@@ -859,7 +888,11 @@ Sales Transactions
     }
 
     function loadForm(diskon = 0, diterima = 0) {
-        $('#total').val($('.total').text());
+        if (!$('#total').val() || isNaN(parseFloat($('#total').val()))) {
+            $('#total').val($('.total').text());
+        } else {
+            $('#total').val(parseFloat($('#total').val()).toFixed(2));
+        }
         $('#total_item').val($('.total_item').text());
 
         $.get(`{{ url('/transaksi/loadform') }}/${diskon}/${$('.total').text()}/${diterima}`)
