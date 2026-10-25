@@ -273,45 +273,24 @@ Sales Transactions
             let id = $input.data('id');
             let price = parseFloat($input.data('price')) || 0;
             let amount = parseFloat($input.val()) || 0;
-            if (price <= 0 || isNaN(amount)) {
-                return;
-            }
+            if (price <= 0 || isNaN(amount) || amount < 0) return;
             let kg = amount / price;
             $input.closest('tr').find('.quantity').val(kg);
-            let row = $input.closest('tr');
-            row.find('.subtotal').html('₦ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-
+            $input.closest('tr').find('.subtotal').html('₦ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             let total = amount;
-            total = Math.round(total * 100) / 100;
-            $('#total').val(total);
-            $('#bayar').val(total);
+            $('#total').val(total.toFixed(2));
+            $('#bayar').val(total.toFixed(2));
             $('#totalrp').val('₦ ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('#bayarrp').val('₦ ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('.tampil-bayar').html('Pay: ₦ ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-            $.get(`{{ url('/transaksi/loadform') }}/${$('#diskon').val()||0}/${total}/${$('#diterima').val()||0}`)
-                .done(response => {
-                    $('.tampil-terbilang').text(response.terbilang);
-                    $('#kembali').val('₦'+ response.kembalirp);
-                    if ($('#diterima').val() != 0 && parseFloat($('#diterima').val()) > 0) {
-                        $('.tampil-bayar').text('Return: ₦ '+ response.kembalirp);
-                        $('.tampil-terbilang').text(response.kembali_terbilang);
-                    }
-                });
-
             clearTimeout(amountTimer);
             amountTimer = setTimeout(function () {
                 $.post(`{{ url('/transaksi') }}/${id}`, {
                         '_token': $('[name=csrf-token]').attr('content'),
                         '_method': 'put',
                         'jumlah': kg
-                    })
-                    .done(response => {
-                        table.ajax.reload(() => loadForm($('#diskon').val(), $('#diterima').val()));
-                    })
-                    .fail(errors => {
-                        table.ajax.reload(() => loadForm(0));
-                    });
-            }, 500);
+                    }).done(function(){}).fail(function(){});
+            }, 800);
         });
         $(document).on('input', '.discount-input', function () {
             let id = $(this).data('id');
@@ -348,11 +327,24 @@ Sales Transactions
         });
 
         // ✅ Auto-calculate when received value changes (discount is readonly, item discounts already in subtotals)
-        $(document).on('input', '#diterima', function () {
+        $(document).off('input', '#diterima').on('input', '#diterima', function () {
             if ($(this).val() == "") {
                 $(this).val(0).select();
             }
-            loadForm(0, $('#diterima').val());
+            let bayar = parseFloat($('#bayar').val()) || 0;
+            let diterima = parseFloat($(this).val()) || 0;
+            let kembali = diterima - bayar;
+            if (kembali < 0) kembali = 0;
+            $('#kembali').val('₦'+ kembali.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            if (diterima > 0) {
+                $('.tampil-bayar').html('Return: ₦ '+ kembali.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                $.get(`{{ url('/transaksi/loadform') }}/${$('#diskon').val()||0}/${bayar}/${diterima}`)
+                    .done(response => {
+                        $('.tampil-terbilang').text(response.kembali_terbilang);
+                    });
+            } else {
+                $('.tampil-bayar').html('Pay: ₦ '+ $('#bayarrp').val().replace('₦ ',''));
+            }
         });
 
         $('#payment_method').on('change', function () {

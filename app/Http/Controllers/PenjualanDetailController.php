@@ -105,9 +105,9 @@ class PenjualanDetailController extends Controller
             $lineMax = $item->harga_jual * $item->jumlah;
             $row = array();
             $row['nama_produk'] = $item->produk['nama_produk'];
-            $row['harga_jual']  = '₦ '. $this->formatAmount($item->harga_jual);
-            $row['amount']      = '<input type="number" class="form-control input-sm amount" data-id="'. $item->id_penjualan_detail .'" data-price="'. $item->harga_jual .'" value="'. $this->formatAmount($item->harga_jual * $item->jumlah) .'" step="0.01">';
-            $row['jumlah']      = '<input type="number" class="form-control input-sm quantity" data-id="'. $item->id_penjualan_detail .'" value="'. $item->jumlah .'" step="0.0001">';
+            $row['harga_jual']  = '₦ '. format_uang($item->harga_jual);
+            $row['amount']      = '<input type="number" class="form-control input-sm amount" data-id="'. $item->id_penjualan_detail .'" data-price="'. $item->harga_jual .'" value="'. ($item->harga_jual * $item->jumlah) .'" step="0.01">';
+            $row['jumlah']      = '<input type="number" class="form-control input-sm quantity" data-id="'. $item->id_penjualan_detail .'" value="'. $item->jumlah .'" step="0.001">';
             $row['diskon']      = '<input type="number" class="form-control input-sm discount-input" data-id="'. $item->id_penjualan_detail .'" data-max="'. $lineMax .'" value="'. (int) $item->diskon .'" min="0" step="1">';
             $row['subtotal']    = '₦ '. $this->formatAmount($item->subtotal);
             $row['aksi']        = '<div class="btn-group">

@@ -62,16 +62,10 @@
     
     <br>
     <table width="100%" style="border: 0;">
-        @foreach ($detail as $item)
-            <tr>
-                <td colspan="3">{{ $item->produk->nama_produk }}</td>
-            </tr>
-            <tr>
-                <td>{{ $item->jumlah }} x {{ format_uang($item->harga_jual) }}</td>
-                <td></td>
-                <td class="text-right">{{ format_uang($item->jumlah * $item->harga_jual) }}</td>
-            </tr>
-        @endforeach
+        <tr>
+            <td>Price per kg:</td>
+            <td class="text-right">{{ format_uang($detail->first()->harga_jual ?? ($detail->first()->produk->harga_jual ?? 0)) }}</td>
+        </tr>
     </table>
     <p class="text-center">-----------------------------------</p>
 
@@ -82,7 +76,7 @@
         </tr>
         <tr>
             <td>Total kg:</td>
-            <td class="text-right">{{ number_format($penjualan->total_item, 2, '.', ',') }}</td>
+            <td class="text-right">{{ number_format(($detail->first()->harga_jual > 0 ? ($penjualan->bayar / $detail->first()->harga_jual) : $detail->sum(function($d){return (float)$d->jumlah;})), 3, '.', ',') }}</td>
         </tr>
         <tr>
             <td>Discount:</td>

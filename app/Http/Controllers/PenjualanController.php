@@ -45,11 +45,11 @@ class PenjualanController extends Controller
             }
 
             $penjualan->setRelation('detail', $filteredDetails->values());
-            $penjualan->total_item = $filteredDetails->sum('jumlah');
-                $penjualan->total_harga = round($filteredDetails->sum(function ($detail) {
-                return round($detail->harga_jual * (float)$detail->jumlah, 2, PHP_ROUND_HALF_UP);
-            }), 2);
-            $penjualan->bayar = $filteredDetails->sum('subtotal');
+            $penjualan->total_item = $filteredDetails->sum(function($d){ return (float)$d->jumlah; });
+            $penjualan->total_harga = $filteredDetails->sum(function ($detail) {
+                return round((float)$detail->harga_jual * (float)$detail->jumlah, 2, PHP_ROUND_HALF_UP);
+            });
+            $penjualan->bayar = $filteredDetails->sum(function($d){ return (float)$d->subtotal; });
 
             return $penjualan;
         })->filter()->values();
@@ -83,10 +83,14 @@ class PenjualanController extends Controller
     private function saleTotalItem($penjualan)
     {
         if ((float) $penjualan->bayar <= 0 && $penjualan->detail->count() > 0) {
-            return $penjualan->detail->sum('jumlah');
+            return $penjualan->detail->sum(function($d){ return (float)$d->jumlah; });
         }
 
-        return $penjualan->total_item;
+        if ($penjualan->total_item && (float)$penjualan->total_item > 0) {
+            return (float)$penjualan->total_item;
+        }
+
+        return $penjualan->detail->sum(function($d){ return (float)$d->jumlah; });
     }
 
     private function saleTotalHarga($penjualan)
@@ -164,13 +168,39 @@ class PenjualanController extends Controller
             ->of($penjualan)
             ->addIndexColumn()
             ->addColumn('total_item', function ($penjualan) {
-                return number_format($this->saleTotalItem($penjualan), 2, '.', ',');
+                $qty = 0;
+                if ($penjualan->detail && $penjualan->detail->count() > 0) {
+                    $first = $penjualan->detail->first();
+                    if ($first && $first->produk && $first->produk->harga_jual > 0 && $penjualan->bayar > 0) {
+                        $qty = (float)$penjualan->bayar / (float)$first->produk->harga_jual;
+                    } else {
+                        $qty = $penjualan->detail->sum(function($d){ return (float)$d->jumlah; });
+                    }
+                }
+                if ($qty == 0 && isset($penjualan->total_item)) {
+                    $qty = (float)$penjualan->total_item;
+                }
+                return number_format($qty, 3, '.', ',');
             })
             ->addColumn('total_harga', function ($penjualan) {
-                return '₦ '. format_uang($this->saleTotalHarga($penjualan));
+                $th = 0;
+                if (isset($penjualan->detail) && $penjualan->detail->count() > 0) {
+                    $first = $penjualan->detail->first();
+                    if ($first && $first->produk && $first->produk->harga_jual > 0 && $penjualan->bayar > 0) {
+                        $kg = (float)$penjualan->bayar / (float)$first->produk->harga_jual;
+                        $th = $kg * (float)$first->produk->harga_jual;
+                    } else {
+                        $th = $penjualan->detail->sum(function($d){ return (float)$d->harga_jual * (float)$d->jumlah; });
+                    }
+                }
+                if ($th == 0 && isset($penjualan->total_harga)) {
+                    $th = (float)$penjualan->total_harga;
+                }
+                return '₦ '. number_format(round($th, 2), 2, '.', ',');
             })
             ->addColumn('bayar', function ($penjualan) {
-                return '₦ '. format_uang($this->saleTotalBayar($penjualan));
+                $bay = isset($penjualan->bayar) ? (float)$penjualan->bayar : 0;
+                return '₦ '. number_format(round($bay, 2), 2, '.', ',');
             })
             ->addColumn('tanggal', function ($penjualan) {
                 return tanggal_indonesia($penjualan->created_at, false);
@@ -407,13 +437,13 @@ class PenjualanController extends Controller
                     ->with('error', 'A product in this sale no longer exists.');
             }
 
-            $currentByProduct[$item->id_produk] = ($currentByProduct[$item->id_produk] ?? 0) + $item->jumlah;
+            $currentByProduct[$item->id_produk] = ($currentByProduct[$item->id_produk] ?? 0) + (float)$item->jumlah;
         }
 
         $productIds = array_unique(array_merge(array_keys($baseline), array_keys($currentByProduct)));
 
         foreach ($productIds as $idProduk) {
-            $currentQty = (int) ($currentByProduct[$idProduk] ?? 0);
+            $currentQty = (float) ($currentByProduct[$idProduk] ?? 0);
             $extraQty = $isResumeEdit
                 ? SaleStock::extraQtyBeyondBaseline($idProduk, $currentQty, $saleId)
                 : $currentQty;
@@ -424,7 +454,7 @@ class PenjualanController extends Controller
 
             $produk = Produk::find($idProduk);
 
-            if (! $produk || (int) $produk->stok < $extraQty) {
+            if (! $produk || (float) $produk->stok < $extraQty) {
                 return redirect()->route('transaksi.index')
                     ->with('error', SaleStock::outOfStockMessage(
                         $produk ?? new Produk(['nama_produk' => 'Unknown'])
@@ -443,11 +473,11 @@ class PenjualanController extends Controller
                     $penjualan->receipt_number = $this->generateReceiptNumber();
                 }
 
-                $penjualan->total_item = $request->total_item;
-                $penjualan->total_harga = $request->total;
-                $penjualan->diskon = $request->diskon;
-                $penjualan->bayar = $request->bayar;
-                $penjualan->diterima = $request->diterima;
+                $penjualan->total_item = (float)$request->total_item;
+                $penjualan->total_harga = (float)$request->total;
+                $penjualan->diskon = (float)$request->diskon;
+                $penjualan->bayar = (float)$request->bayar;
+                $penjualan->diterima = (float)$request->diterima;
                 $penjualan->handoff_status = null;
                 $penjualan->checkout_section_id = auth()->user()->id_section;
                 $penjualan->update();
