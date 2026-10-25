@@ -141,23 +141,36 @@ Sales Transactions
                             <div class="form-group row">
                                 <label for="diterima" class="col-lg-2 control-label">Received</label>
                                 <div class="col-lg-8">
-                                    <input type="number" id="diterima" class="form-control" name="diterima" value="{{ $penjualan->diterima ?? 0 }}">
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <label for="kembali" class="col-lg-2 control-label">Return</label>
-                                <div class="col-lg-8">
-                                    <input type="text" id="kembali" name="kembali" class="form-control" value="0" readonly>
+                                    <input type="number" id="diterima" class="form-control" name="diterima" value="{{ $penjualan->diterima ?? 0 }}" readonly>
                                 </div>
                             </div>
                             <div class="form-group row">
                                 <label for="payment_method" class="col-lg-2 control-label">Payment Method</label>
                                 <div class="col-lg-8">
-                                    <select name="payment_method" id="payment_method" class="form-control">
-                                        <option value="cash" {{ ($penjualan->payment_method ?? 'cash') === 'cash' ? 'selected' : '' }}>Cash</option>
-                                        <option value="transfer" {{ ($penjualan->payment_method ?? 'cash') === 'transfer' ? 'selected' : '' }}>Transfer</option>
-                                        <option value="card" {{ ($penjualan->payment_method ?? 'cash') === 'card' ? 'selected' : '' }}>Card</option>
-                                    </select>
+                                    <div class="btn-group" role="group" id="payMethodBtns">
+                                        <button type="button" class="btn btn-default btn-sm" data-method="cash">Cash</button>
+                                        <button type="button" class="btn btn-default btn-sm" data-method="transfer">Transfer</button>
+                                        <button type="button" class="btn btn-default btn-sm" data-method="card">Card</button>
+                                    </div>
+                                    <input type="hidden" name="payment_method" id="payment_method" value="{{ $penjualan->payment_method ?? 'cash' }}">
+                                </div>
+                            </div>
+                            <div class="form-group row pay-row pay-cash" style="display:none">
+                                <label class="col-lg-2 control-label">Cash</label>
+                                <div class="col-lg-8">
+                                    <input type="number" class="form-control" name="pay_cash" id="pay_cash" step="0.01" value="">
+                                </div>
+                            </div>
+                            <div class="form-group row pay-row pay-transfer" style="display:none">
+                                <label class="col-lg-2 control-label">Transfer</label>
+                                <div class="col-lg-8">
+                                    <input type="number" class="form-control" name="pay_transfer" id="pay_transfer" step="0.01" value="">
+                                </div>
+                            </div>
+                            <div class="form-group row pay-row pay-card" style="display:none">
+                                <label class="col-lg-2 control-label">Card</label>
+                                <div class="col-lg-8">
+                                    <input type="number" class="form-control" name="pay_card" id="pay_card" step="0.01" value="">
                                 </div>
                             </div>
                         </form>
@@ -347,15 +360,32 @@ Sales Transactions
             }
         });
 
-        $('#payment_method').on('change', function () {
-            let bayar = parseFloat($('#bayar').val()) || 0;
-
-            if ($(this).val() === 'transfer') {
-                $('#diterima').val(bayar > 0 ? Math.round(bayar) : 0);
-                loadForm(0, $('#diterima').val());
+        // Payment method toggle
+        $(document).on('click', '#payMethodBtns .btn', function(){
+            var $btn = $(this);
+            $btn.toggleClass('btn-primary').toggleClass('btn-default');
+            var method = $btn.data('method');
+            if ($btn.hasClass('btn-primary')) {
+                $('.pay-' + method).show();
+                updatePaymentMethod();
             } else {
-                $('#diterima').val(0).select();
-                loadForm(0, $('#diterima').val());
+                $('.pay-' + method).hide();
+                $('#' + 'pay_' + method).val(0);
+                updatePaymentMethod();
+            }
+        });
+
+        function updatePaymentMethod(){
+            var methods = [];
+            $('#payMethodBtns .btn-primary').each(function(){ methods.push($(this).data('method')); });
+            $('#payment_method').val(methods.join(',') || 'cash');
+        }
+
+        $(document).on('input', '#pay_cash, #pay_transfer, #pay_card', function(){
+            var total = parseFloat($('#bayar').val()) || 0;
+            var sum = (parseFloat($('#pay_cash').val())||0) + (parseFloat($('#pay_transfer').val())||0) + (parseFloat($('#pay_card').val())||0);
+            if (sum > 0) {
+                $('#diterima').val(sum.toFixed(2));
             }
         });
 
