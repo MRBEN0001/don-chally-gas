@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\DB;
 
 class PenjualanDetailController extends Controller
 {
+    private function formatAmount($angka)
+    {
+        return number_format(round($angka, 2, PHP_ROUND_HALF_UP), 2, '.', ',');
+    }
+
     private function lineDiscountAmount($hargaJual, $jumlah, $diskon): float
     {
         $lineTotal = $hargaJual * $jumlah;
@@ -20,12 +25,12 @@ class PenjualanDetailController extends Controller
         return max(0, min((float) $diskon, $lineTotal));
     }
 
-    private function calculateSubtotal($hargaJual, $jumlah, $diskon): int
+    private function calculateSubtotal($hargaJual, $jumlah, $diskon): float
     {
-        $lineTotal = $hargaJual * $jumlah;
-        $discount = $this->lineDiscountAmount($hargaJual, $jumlah, $diskon);
+        $lineTotal = round((float)$hargaJual * (float)$jumlah, 2, PHP_ROUND_HALF_UP);
+        $discount = round($this->lineDiscountAmount($hargaJual, $jumlah, $diskon), 2, PHP_ROUND_HALF_UP);
 
-        return (int) ($lineTotal - $discount);
+        return round($lineTotal - $discount, 2, PHP_ROUND_HALF_UP);
     }
 
     public function index()
@@ -104,7 +109,7 @@ class PenjualanDetailController extends Controller
             $row['amount']      = '<input type="number" class="form-control input-sm amount" data-id="'. $item->id_penjualan_detail .'" data-price="'. $item->harga_jual .'" value="'. ($item->harga_jual * $item->jumlah) .'" step="0.01">';
             $row['jumlah']      = '<input type="number" class="form-control input-sm quantity" data-id="'. $item->id_penjualan_detail .'" value="'. $item->jumlah .'" step="0.001">';
             $row['diskon']      = '<input type="number" class="form-control input-sm discount-input" data-id="'. $item->id_penjualan_detail .'" data-max="'. $lineMax .'" value="'. (int) $item->diskon .'" min="0" step="1">';
-            $row['subtotal']    = '₦ '. format_uang($item->subtotal);
+            $row['subtotal']    = '₦ '. $this->formatAmount($item->subtotal);
             $row['aksi']        = '<div class="btn-group">
                                     <button onclick="deleteData(`'. route('transaksi.destroy', $item->id_penjualan_detail) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
                                 </div>';
@@ -292,12 +297,12 @@ class PenjualanDetailController extends Controller
         $bayar   = $total - $diskon;
         $kembali = ($diterima != 0) ? $diterima - $bayar : 0;
         $data    = [
-            'totalrp' => format_uang($total),
-            'bayar' => $bayar,
-            'bayarrp' => format_uang($bayar),
-            'terbilang' => ucwords(terbilang($bayar). ' Naira'),
-            'kembalirp' => format_uang($kembali),
-            'kembali_terbilang' => ucwords(terbilang($kembali). ' Naira'),
+            'totalrp' => $this->formatAmount($total),
+            'bayar' => round($bayar, 2, PHP_ROUND_HALF_UP),
+            'bayarrp' => $this->formatAmount($bayar),
+            'terbilang' => ucwords(terbilang(round($bayar)). ' Naira'),
+            'kembalirp' => $this->formatAmount($kembali),
+            'kembali_terbilang' => ucwords(terbilang(round($kembali)). ' Naira'),
         ];
 
         return response()->json($data);

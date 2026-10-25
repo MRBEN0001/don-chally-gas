@@ -156,6 +156,7 @@ Sales Transactions
                                     <select name="payment_method" id="payment_method" class="form-control">
                                         <option value="cash" {{ ($penjualan->payment_method ?? 'cash') === 'cash' ? 'selected' : '' }}>Cash</option>
                                         <option value="transfer" {{ ($penjualan->payment_method ?? 'cash') === 'transfer' ? 'selected' : '' }}>Transfer</option>
+                                        <option value="card" {{ ($penjualan->payment_method ?? 'cash') === 'card' ? 'selected' : '' }}>Card</option>
                                     </select>
                                 </div>
                             </div>
@@ -498,7 +499,11 @@ Sales Transactions
 
     // ✅ Recalculate totals & change (returns formatted currency and words)
     function loadForm(diskon = 0, diterima = 0) {
-        $('#total').val($('.total').text());
+        if (!$('#total').val() || isNaN(parseFloat($('#total').val()))) {
+            $('#total').val($('.total').text());
+        } else {
+            $('#total').val(parseFloat($('#total').val()).toFixed(2));
+        }
         $('#total_item').val($('.total_item').text());
 
         $.get(`{{ url('/transaksi/loadform') }}/${diskon}/${$('.total').text()}/${diterima}`)
@@ -694,7 +699,11 @@ Sales Transactions
 
     // === Update Totals and Display ===
     function loadForm(diskon = 0, diterima = 0) {
-        $('#total').val($('.total').text());
+        if (!$('#total').val() || isNaN(parseFloat($('#total').val()))) {
+            $('#total').val($('.total').text());
+        } else {
+            $('#total').val(parseFloat($('#total').val()).toFixed(2));
+        }
         $('#total_item').val($('.total_item').text());
 
         $.get(`{{ url('/transaksi/loadform') }}/${diskon}/${$('.total').text()}/${diterima}`)
@@ -871,7 +880,11 @@ Sales Transactions
     }
 
     function loadForm(diskon = 0, diterima = 0) {
-        $('#total').val($('.total').text());
+        if (!$('#total').val() || isNaN(parseFloat($('#total').val()))) {
+            $('#total').val($('.total').text());
+        } else {
+            $('#total').val(parseFloat($('#total').val()).toFixed(2));
+        }
         $('#total_item').val($('.total_item').text());
 
         $.get(`{{ url('/transaksi/loadform') }}/${diskon}/${$('.total').text()}/${diterima}`)
