@@ -158,7 +158,9 @@ class PenjualanController extends Controller
         $sectionId = $this->getSectionFromRequest($request);
 
         $penjualan = Penjualan::with(['detail.produk.kategori', 'detail.produk.section', 'user', 'checkoutSection'])
-            ->where('bayar', '>', 0)
+            ->where(function($q){
+                $q->where('bayar', '>', 0)->orWhere('pay_cash','>',0)->orWhere('pay_transfer','>',0)->orWhere('pay_card','>',0);
+            })
             ->orderBy('id_penjualan', 'desc')
             ->get();
 
@@ -169,10 +171,11 @@ class PenjualanController extends Controller
             ->addIndexColumn()
             ->addColumn('total_item', function ($penjualan) {
                 $qty = 0;
-                if ($penjualan->detail && $penjualan->detail->count() > 0) {
+                if (isset($penjualan->detail) && $penjualan->detail->count() > 0) {
                     $first = $penjualan->detail->first();
-                    if ($first && $first->produk && $first->produk->harga_jual > 0 && $penjualan->bayar > 0) {
-                        $qty = (float)$penjualan->bayar / (float)$first->produk->harga_jual;
+                    $amount = isset($penjualan->bayar) && $penjualan->bayar > 0 ? (float)$penjualan->bayar : ((float)$penjualan->pay_cash + (float)$penjualan->pay_transfer + (float)$penjualan->pay_card);
+                    if ($first && $first->produk && $first->produk->harga_jual > 0 && $amount > 0) {
+                        $qty = $amount / (float)$first->produk->harga_jual;
                     } else {
                         $qty = $penjualan->detail->sum(function($d){ return (float)$d->jumlah; });
                     }
@@ -183,24 +186,40 @@ class PenjualanController extends Controller
                 return number_format($qty, 3, '.', ',');
             })
             ->addColumn('total_harga', function ($penjualan) {
-                $th = 0;
-                if (isset($penjualan->detail) && $penjualan->detail->count() > 0) {
-                    $first = $penjualan->detail->first();
-                    if ($first && $first->produk && $first->produk->harga_jual > 0 && $penjualan->bayar > 0) {
-                        $kg = (float)$penjualan->bayar / (float)$first->produk->harga_jual;
-                        $th = $kg * (float)$first->produk->harga_jual;
-                    } else {
-                        $th = $penjualan->detail->sum(function($d){ return (float)$d->harga_jual * (float)$d->jumlah; });
-                    }
-                }
-                if ($th == 0 && isset($penjualan->total_harga)) {
-                    $th = (float)$penjualan->total_harga;
+                $th = isset($penjualan->total_harga) ? (float)$penjualan->total_harga : 0;
+                if ($th == 0 && isset($penjualan->bayar)) {
+                    $th = (float)$penjualan->bayar;
                 }
                 return '₦ '. number_format(round($th, 2), 2, '.', ',');
             })
             ->addColumn('bayar', function ($penjualan) {
                 $bay = isset($penjualan->bayar) ? (float)$penjualan->bayar : 0;
+                if ($bay == 0) {
+                    $bay = (float)$penjualan->pay_cash + (float)$penjualan->pay_transfer + (float)$penjualan->pay_card;
+                }
                 return '₦ '. number_format(round($bay, 2), 2, '.', ',');
+            })
+            ->editColumn('payment_method', function ($penjualan) {
+                $pm = array_filter(array_map('trim', explode(',', strtolower($penjualan->payment_method ?? ''))));
+                if (empty($pm)) {
+                    $pm = [];
+                    if ((float)$penjualan->pay_cash > 0) $pm[] = 'cash';
+                    if ((float)$penjualan->pay_transfer > 0) $pm[] = 'transfer';
+                    if ((float)$penjualan->pay_card > 0) $pm[] = 'card';
+                    if (empty($pm)) return '-';
+                }
+                $lines = [];
+                foreach ($pm as $m) {
+                    if ($m === 'cash' && (float)$penjualan->pay_cash > 0) $lines[] = 'Cash(' . number_format($penjualan->pay_cash, 0, '.', ',') . ')';
+                    elseif ($m === 'transfer' && (float)$penjualan->pay_transfer > 0) $lines[] = 'Transfer(' . number_format($penjualan->pay_transfer, 0, '.', ',') . ')';
+                    elseif ($m === 'card' && (float)$penjualan->pay_card > 0) $lines[] = 'Card(' . number_format($penjualan->pay_card, 0, '.', ',') . ')';
+                }
+                if (empty($lines)) {
+                    if ((float)$penjualan->pay_cash > 0) $lines[] = 'Cash(' . number_format($penjualan->pay_cash, 0, '.', ',') . ')';
+                    if ((float)$penjualan->pay_transfer > 0) $lines[] = 'Transfer(' . number_format($penjualan->pay_transfer, 0, '.', ',') . ')';
+                    if ((float)$penjualan->pay_card > 0) $lines[] = 'Card(' . number_format($penjualan->pay_card, 0, '.', ',') . ')';
+                }
+                return implode(', ', $lines);
             })
             ->addColumn('tanggal', function ($penjualan) {
                 return tanggal_indonesia($penjualan->created_at, false);
@@ -286,7 +305,7 @@ class PenjualanController extends Controller
                 $buttons .= '</div>';
                 return $buttons;
             })
-            ->rawColumns(['aksi'])
+            ->rawColumns(['aksi', 'payment_method'])
             ->make(true);
     }
     // visit "codeastro" for more projects!
@@ -468,6 +487,9 @@ class PenjualanController extends Controller
                 $penjualan->room_unique_details = $request->room_unique_details ?? null;
                 $penjualan->phone_number = $request->phone_number ?? null;
                 $penjualan->payment_method = $request->payment_method ?? 'cash';
+                $penjualan->pay_cash = $request->pay_cash ?? 0;
+                $penjualan->pay_transfer = $request->pay_transfer ?? 0;
+                $penjualan->pay_card = $request->pay_card ?? 0;
 
                 if (empty($penjualan->receipt_number)) {
                     $penjualan->receipt_number = $this->generateReceiptNumber();

@@ -57,7 +57,19 @@
     @if($penjualan->room_unique_details)
     <p>Name: {{ strtoupper($penjualan->room_unique_details) }}</p>
     @endif
-    <p>Payment Method: {{ ucfirst($penjualan->payment_method ?? 'cash') }}</p>
+    <p>Payment Method: {{ ucfirst(str_replace(',', ', ', $penjualan->payment_method ?? 'cash')) }}</p>
+    @php
+        $pm = array_filter(array_map('trim', explode(',', $penjualan->payment_method ?? '')));
+    @endphp
+    @if(count($pm) > 0)
+    <p>
+        @if(in_array('cash', $pm) && $penjualan->pay_cash > 0)Cash: {{ format_uang($penjualan->pay_cash) }} @endif
+        @if(in_array('transfer', $pm) && $penjualan->pay_transfer > 0) | Transfer: {{ format_uang($penjualan->pay_transfer) }} @endif
+        @if(in_array('card', $pm) && $penjualan->pay_card > 0) | Card: {{ format_uang($penjualan->pay_card) }} @endif
+    </p>
+    @elseif($penjualan->pay_cash > 0 || $penjualan->pay_transfer > 0 || $penjualan->pay_card > 0)
+    <p>Cash: {{ format_uang($penjualan->pay_cash) }} | Transfer: {{ format_uang($penjualan->pay_transfer) }} | Card: {{ format_uang($penjualan->pay_card) }}</p>
+    @endif
     <p class="text-center">===================================</p>
     
     <br>
@@ -89,10 +101,6 @@
         <tr>
             <td>Received:</td>
             <td class="text-right">{{ format_uang($penjualan->diterima) }}</td>
-        </tr>
-        <tr>
-            <td>Return:</td>
-            <td class="text-right">{{ format_uang($penjualan->diterima - $penjualan->bayar) }}</td>
         </tr>
     </table>
 
